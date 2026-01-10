@@ -1,10 +1,23 @@
-#include <bits/stdc++.h>
-#include <immintrin.h>
+#include <vector>
+#include <ranges>
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <cstddef>
+#include <stdexcept>
+#include <utility>
+#include <cstdlib>
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
+#ifdef __APPLE__
+#define ALIGNED_ALLOC(size, alignment) aligned_alloc(alignment, size)
+#define ALIGNED_FREE(ptr) free(ptr)
+#else
 #define ALIGNED_ALLOC(size, alignment) _mm_malloc(size, alignment)
 #define ALIGNED_FREE(ptr) _mm_free(ptr)
+#endif
 
 namespace py = pybind11;
 
@@ -17,8 +30,7 @@ template <class T, size_t Alignment> struct AlignedAllocator {
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
   AlignedAllocator() noexcept = default;
-  template <class U>
-  AlignedAllocator(const AlignedAllocator<U, Alignment> &) noexcept {}
+  template <class U> AlignedAllocator(const AlignedAllocator<U, Alignment> &) noexcept {}
   template <class U> struct rebind {
     using other = AlignedAllocator<U, Alignment>;
   };
@@ -26,8 +38,7 @@ template <class T, size_t Alignment> struct AlignedAllocator {
     if (n == 0)
       return nullptr;
     if (n > max_size())
-      throw std::length_error(
-          "AlignedAllocator::allocate() - Integer overflow.");
+      throw std::length_error("AlignedAllocator::allocate() - Integer overflow.");
     void *ptr = ALIGNED_ALLOC(n * sizeof(T), Alignment);
     if (!ptr)
       throw std::bad_alloc();
@@ -36,9 +47,7 @@ template <class T, size_t Alignment> struct AlignedAllocator {
   void deallocate(pointer p, size_type) { ALIGNED_FREE(p); }
   bool operator==(const AlignedAllocator &) const { return true; }
   bool operator!=(const AlignedAllocator &) const { return false; }
-  size_type max_size() const noexcept {
-    return static_cast<size_type>(-1) / sizeof(T);
-  }
+  size_type max_size() const noexcept { return static_cast<size_type>(-1) / sizeof(T); }
 };
 
 typedef uint64_t v8int64 __attribute__((vector_size(64), aligned(64)));
@@ -48,24 +57,35 @@ aligned_vector pyint_to_aligned_array(py::int_ pyx, int nb) {
   assert(!pyx.is_none());
   PyObject *py_long = pyx.ptr();
   aligned_vector result(nb);
-  int status = _PyLong_AsByteArray(
-      (PyLongObject *)py_long, reinterpret_cast<unsigned char *>(result.data()),
-      nb * sizeof(uint64_t),
-      1, // little-endian
-      0  // is_signed
+  #if PY_VERSION_HEX >= 0x030D0000  // Python 3.13+
+  int status = PyLong_AsNativeBytes(py_long, reinterpret_cast<void *>(result.data()),
+                                    nb * sizeof(uint64_t), Py_ASNATIVEBYTES_LITTLE_ENDIAN);
+  if (status == -1)
+    throw py::error_already_set();
+  #else
+  int status = _PyLong_AsByteArray((PyLongObject *)py_long, reinterpret_cast<unsigned char *>(result.data()),
+                                   nb * sizeof(uint64_t),
+                                   1, // little-endian
+                                   0  // is_signed
   );
   if (status == -1)
     throw py::error_already_set();
+  #endif
   return result;
 }
 
 py::int_ aligned_array_to_pyint(const aligned_vector &x) {
+  #if PY_VERSION_HEX >= 0x030D0000  // Python 3.13+
+  PyObject *py_long = PyLong_FromNativeBytes(reinterpret_cast<const void *>(x.data()),
+                                              x.size() * sizeof(uint64_t),
+                                              Py_ASNATIVEBYTES_LITTLE_ENDIAN);
+  #else
   PyObject *py_long =
-      _PyLong_FromByteArray(reinterpret_cast<const unsigned char *>(x.data()),
-                            x.size() * sizeof(uint64_t),
+      _PyLong_FromByteArray(reinterpret_cast<const unsigned char *>(x.data()), x.size() * sizeof(uint64_t),
                             1, // little-endian
                             0  // is_signed
       );
+  #endif
   if (!py_long)
     throw py::error_already_set();
   return py::reinterpret_steal<py::int_>(py_long);
@@ -97,8 +117,7 @@ struct linear_equation_solver_GF2_impl {
   auto reduce(py::int_ py_equation, int py_output) {
     auto equation = pyint_to_aligned_array(py_equation, nb);
     int output = py_output;
-    for (const auto &[basis_equation, basis_pivot, basis_output] :
-         std::views::zip(equations, pivots, outputs)) {
+    for (const auto &[basis_equation, basis_pivot, basis_output] : std::views::zip(equations, pivots, outputs)) {
       if (equation[basis_pivot / w] >> basis_pivot % w & 1) {
         vectorized_xor(equation, basis_equation);
         output ^= basis_output;
@@ -153,11 +172,9 @@ struct linear_equation_solver_GF2_impl {
 };
 
 PYBIND11_MODULE(linear_equation_solver_GF2_impl, m) {
-  py::class_<linear_equation_solver_GF2_impl>(m,
-                                              "linear_equation_solver_GF2_impl")
+  py::class_<linear_equation_solver_GF2_impl>(m, "linear_equation_solver_GF2_impl")
       .def(py::init<int>())
-      .def("add_equation_if_consistent",
-           &linear_equation_solver_GF2_impl::add_equation_if_consistent)
+      .def("add_equation_if_consistent", &linear_equation_solver_GF2_impl::add_equation_if_consistent)
       .def("rank", &linear_equation_solver_GF2_impl::rank)
       .def("nullity", &linear_equation_solver_GF2_impl::nullity)
       .def("solve", &linear_equation_solver_GF2_impl::solve);
