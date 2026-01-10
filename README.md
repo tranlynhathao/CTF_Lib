@@ -55,10 +55,13 @@ The installation process will compile C++ extensions using pybind11. Ensure you 
 
 ## Quick Start
 
-After installation, you can import CTF_Lib and start using its functions:
+After installation, you can import CTF_Library and start using its functions:
 
 ```python
-from CTF_Lib import *
+# Method 1: Direct import from specific modules (recommended)
+from CTF_Library.Cryptography.RSA.RSA_decrypt import RSA_decrypt
+from Crypto.Util.number import getPrime, bytes_to_long, long_to_bytes
+from math import prod
 
 # Example: RSA decryption with multiple primes
 primes = [getPrime(512) for _ in range(3)]
@@ -72,6 +75,8 @@ decrypted = RSA_decrypt(primes, e, c)
 print(long_to_bytes(decrypted[0]))
 ```
 
+**Note:** The package name is `CTF_Library` (not `CTF_Lib`). While `from CTF_Library import *` may work, direct imports from specific modules are recommended to avoid potential issues with compiled extensions during import.
+
 ## Module Documentation
 
 ### RSA Cryptography
@@ -81,7 +86,8 @@ print(long_to_bytes(decrypted[0]))
 Decrypts RSA ciphertext when you have the prime factors.
 
 ```python
-from CTF_Lib import RSA_decrypt, bytes_to_long, long_to_bytes
+from CTF_Library.Cryptography.RSA.RSA_decrypt import RSA_decrypt
+from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 # Given: primes, public exponent e, and ciphertext
 primes = [p1, p2, p3]  # List of prime factors
@@ -109,7 +115,7 @@ for pt in plaintexts:
 Performs an invalid curve attack on ECDLP when the oracle doesn't verify curve membership.
 
 ```python
-from CTF_Lib import ECDLP_invalid_curve_attack
+from CTF_Library.Cryptography.EllipticCurve.ECDLP_invalid_curve_attack import ECDLP_invalid_curve_attack
 
 # Given: prime p, curve parameter a, and oracle function
 p = 2**256 - 2**32 - 977
@@ -150,7 +156,7 @@ print(f"Remainder: {r}")
 Recovers the private key when the same nonce is used in multiple ECDSA signatures.
 
 ```python
-from CTF_Lib import ECDSA_nonce_reuse_attack
+from CTF_Library.Cryptography.EllipticCurve.ECDSA_nonce_reuse_attack import ECDSA_nonce_reuse_attack
 
 # Given: Two signatures (r0, s0), (r1, s1) with same nonce
 # Message hashes: h0, h1
@@ -183,7 +189,7 @@ print(f"Nonce: {nonce}")
 Finds small roots of univariate polynomials modulo composite numbers.
 
 ```python
-from CTF_Lib import coppersmith_univariate
+from CTF_Library.Cryptography.Coppersmith.coppersmith import coppersmith_univariate
 
 # Example: Find small roots of f(x) mod m
 m = 10001
@@ -209,7 +215,7 @@ print(f"Found roots: {roots}")
 Reduces a lattice using the flatter tool for improved performance.
 
 ```python
-from CTF_Lib import reduce_lattice
+from CTF_Library.Cryptography.Lattice.reduce_lattice import reduce_lattice
 from sage.all import matrix
 
 # Create a lattice matrix
@@ -233,7 +239,7 @@ print(f"Reduced lattice:\n{reduced}")
 Forges CBC ciphertext using a padding oracle.
 
 ```python
-from CTF_Lib import forge_CBC_ciphertext_with_padding_oracle
+from CTF_Library.Cryptography.SymmetricCiphers.AES.forge_CBC_with_padding_oracle import forge_CBC_ciphertext_with_padding_oracle
 
 def padding_oracle(iv, ciphertext):
     # Returns True if padding is valid, False otherwise
@@ -270,7 +276,7 @@ forged_iv, forged_ct = forge_CBC_ciphertext_with_padding_oracle(
 Computes coefficients for Chinese Remainder Theorem representation.
 
 ```python
-from CTF_Lib import CRT_coefficients
+from CTF_Library.Cryptography.NumberTheory.CRT_coefficients import CRT_coefficients
 
 # Given moduli
 mods = [m1, m2, m3, ...]
@@ -293,7 +299,7 @@ coefs = CRT_coefficients(mods)
 Computes extended GCD for multiple integers.
 
 ```python
-from CTF_Lib import extended_euclidean
+from CTF_Library.Cryptography.NumberTheory.extended_euclidean import extended_euclidean
 
 # Compute GCD and coefficients
 numbers = [a, b, c, d, ...]
@@ -310,7 +316,7 @@ assert gcd_val == sum(c * n for c, n in zip(coefficients, numbers))
 Recovers Python's random state from observed outputs.
 
 ```python
-from CTF_Lib import python_random_breaker
+from CTF_Library.Cryptography.MersenneTwister.python_random_breaker import python_random_breaker
 import random
 
 # Create breaker instance
@@ -349,7 +355,7 @@ print(f"Possible seeds: {seeds}")
 Solves systems of linear equations over GF(2).
 
 ```python
-from CTF_Lib import linear_equation_solver_GF2
+from CTF_Library.Cryptography.LinearAlgebra.linear_equation_solver_GF2 import linear_equation_solver_GF2
 
 # Create solver for n variables
 solver = linear_equation_solver_GF2(n=100)
@@ -387,7 +393,7 @@ all_solutions = solver.all_solutions()
 Solves 2-SAT problems.
 
 ```python
-from CTF_Lib import two_sat_solver
+from CTF_Library.Algorithms_And_Data_Structures.two_sat_solver import two_sat_solver
 
 # Create solver for n variables
 solver = two_sat_solver(n=10)
@@ -411,7 +417,7 @@ else:
 Computes maximum flow using Dinic's algorithm.
 
 ```python
-from CTF_Lib import dinic_maximum_flow
+from CTF_Library.Algorithms_And_Data_Structures.dinic_maximum_flow import dinic_maximum_flow
 
 # Create flow network
 # See flow_network.py for network construction
@@ -423,8 +429,9 @@ max_flow = dinic_maximum_flow(network, source, sink)
 ### RSA Challenge with Small Prime Difference
 
 ```python
-from CTF_Lib import *
-from gmpy2 import isqrt
+from CTF_Library.Cryptography.Factorization.fermat_factorization import fermat_factorization
+from CTF_Library.Cryptography.RSA.RSA_decrypt import RSA_decrypt
+from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 # Given: n = p * q where |p - q| is small
 n = 12345678901234567890
@@ -445,7 +452,7 @@ print(long_to_bytes(m))
 ### Coppersmith Attack on RSA
 
 ```python
-from CTF_Lib import coppersmith_univariate
+from CTF_Library.Cryptography.Coppersmith.coppersmith import coppersmith_univariate
 from math import gcd
 
 # Given: n = p * q, and we know p = p0 + x where x is small
@@ -477,7 +484,8 @@ for root in roots:
 ### Padding Oracle Attack
 
 ```python
-from CTF_Lib import forge_CBC_ciphertext_with_padding_oracle
+from CTF_Library.Cryptography.SymmetricCiphers.AES.forge_CBC_with_padding_oracle import forge_CBC_ciphertext_with_padding_oracle
+from Crypto.Util.Padding import pad
 from pwn import remote
 
 # Connect to server
@@ -503,26 +511,40 @@ flag = io.recvline()
 print(flag)
 ```
 
-## Global Imports
+## Import Patterns
 
-CTF_Lib automatically imports many commonly used functions and modules into the global namespace for convenience:
+### Recommended: Direct Imports
 
-- **Crypto**: `AES`, `DES`, `bytes_to_long`, `long_to_bytes`, `inverse`, `pad`, `unpad`, `strxor`
-- **SageMath**: All SageMath functions (via `sage.all`)
-- **pwn**: All pwntools functions
-- **gmpy2**: `is_square`, `isqrt`, `iroot`
-- **Standard libraries**: `hashlib`, `base64`, `numpy`, `itertools`, `random`, `requests`, etc.
-
-This means you can use these functions directly without additional imports:
+For reliability and to avoid potential issues with compiled extensions, use direct imports from specific modules:
 
 ```python
-from CTF_Lib import *
-
-# All these work without additional imports
-m = bytes_to_long(b"hello")
-c = pow(m, 65537, n)
-pt = long_to_bytes(pow(c, d, n))
+from CTF_Library.Cryptography.RSA.RSA_decrypt import RSA_decrypt
+from CTF_Library.Cryptography.NumberTheory.CRT_coefficients import CRT_coefficients
+from CTF_Library.Cryptography.Coppersmith.coppersmith import coppersmith_univariate
 ```
+
+### Alternative: Root-Level Import
+
+If compiled extensions are properly installed, you may be able to use:
+
+```python
+from CTF_Library import *
+```
+
+However, this may fail if there are issues with compiled C++ extensions. The `CTF_Library` package automatically imports all submodules and makes their functions available at the root level.
+
+### Standard Library Imports
+
+You'll still need to import standard libraries separately:
+
+```python
+from Crypto.Util.number import bytes_to_long, long_to_bytes, getPrime
+from Crypto.Util.Padding import pad, unpad
+from sage.all import *
+import hashlib
+```
+
+See `demo.py` in the repository root for a complete working example.
 
 ## Performance Considerations
 
@@ -738,10 +760,10 @@ The following modules and features could be valuable additions to CTF_Lib for mo
 
 ## Integration with External Tools
 
-CTF_Lib can be used alongside the tools mentioned above. For example:
+CTF_Library can be used alongside the tools mentioned above. For example:
 
 ```python
-from CTF_Lib import *
+from CTF_Library.Cryptography.Lattice.reduce_lattice import reduce_lattice
 import subprocess
 
 # Use RsaCtfTool for complex RSA attacks
@@ -752,9 +774,10 @@ result = subprocess.run(['RsaCtfTool.py', '-n', str(n), '-e', str(e)],
 result = subprocess.run(['yafu', f'factor({n})'],
                        capture_output=True, text=True)
 
-# Combine with CTF_Lib's lattice reduction
+# Combine with CTF_Library's lattice reduction
+from CTF_Library.Cryptography.Lattice.reduce_lattice import reduce_lattice
 mat = construct_lattice_for_attack(...)
-reduced = reduce_lattice(mat)  # Uses flatter via CTF_Lib
+reduced = reduce_lattice(mat)  # Uses flatter via CTF_Library
 ```
 
 ## Acknowledgments
