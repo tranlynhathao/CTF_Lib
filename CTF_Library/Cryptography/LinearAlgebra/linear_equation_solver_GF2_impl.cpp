@@ -1,15 +1,15 @@
-#include <vector>
-#include <ranges>
 #include <algorithm>
 #include <cassert>
-#include <cstdint>
 #include <cstddef>
-#include <stdexcept>
-#include <utility>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <ranges>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 #ifdef __APPLE__
 #define ALIGNED_ALLOC(size, alignment) aligned_alloc(alignment, size)
@@ -57,12 +57,12 @@ aligned_vector pyint_to_aligned_array(py::int_ pyx, int nb) {
   assert(!pyx.is_none());
   PyObject *py_long = pyx.ptr();
   aligned_vector result(nb);
-  #if PY_VERSION_HEX >= 0x030D0000  // Python 3.13+
-  int status = PyLong_AsNativeBytes(py_long, reinterpret_cast<void *>(result.data()),
-                                    nb * sizeof(uint64_t), Py_ASNATIVEBYTES_LITTLE_ENDIAN);
+#if PY_VERSION_HEX >= 0x030D0000 // Python 3.13+
+  int status = PyLong_AsNativeBytes(py_long, reinterpret_cast<void *>(result.data()), nb * sizeof(uint64_t),
+                                    Py_ASNATIVEBYTES_LITTLE_ENDIAN);
   if (status == -1)
     throw py::error_already_set();
-  #else
+#else
   int status = _PyLong_AsByteArray((PyLongObject *)py_long, reinterpret_cast<unsigned char *>(result.data()),
                                    nb * sizeof(uint64_t),
                                    1, // little-endian
@@ -70,22 +70,21 @@ aligned_vector pyint_to_aligned_array(py::int_ pyx, int nb) {
   );
   if (status == -1)
     throw py::error_already_set();
-  #endif
+#endif
   return result;
 }
 
 py::int_ aligned_array_to_pyint(const aligned_vector &x) {
-  #if PY_VERSION_HEX >= 0x030D0000  // Python 3.13+
-  PyObject *py_long = PyLong_FromNativeBytes(reinterpret_cast<const void *>(x.data()),
-                                              x.size() * sizeof(uint64_t),
-                                              Py_ASNATIVEBYTES_LITTLE_ENDIAN);
-  #else
+#if PY_VERSION_HEX >= 0x030D0000 // Python 3.13+
+  PyObject *py_long = PyLong_FromNativeBytes(reinterpret_cast<const void *>(x.data()), x.size() * sizeof(uint64_t),
+                                             Py_ASNATIVEBYTES_LITTLE_ENDIAN);
+#else
   PyObject *py_long =
       _PyLong_FromByteArray(reinterpret_cast<const unsigned char *>(x.data()), x.size() * sizeof(uint64_t),
                             1, // little-endian
                             0  // is_signed
       );
-  #endif
+#endif
   if (!py_long)
     throw py::error_already_set();
   return py::reinterpret_steal<py::int_>(py_long);
